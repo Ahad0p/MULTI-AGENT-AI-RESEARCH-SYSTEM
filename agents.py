@@ -6,7 +6,7 @@ from tools import web_search,scrape_url
 from dotenv import load_dotenv
 load_dotenv()
 
-llm = ChatGroq(model="openai/gpt-oss-120b",temperature=0,disable_tool_validation=False)
+llm = ChatGroq(model="openai/gpt-oss-safeguard-20b",temperature=0,disable_tool_validation=False)
 
 # agent 1
 def build_search_agent():
