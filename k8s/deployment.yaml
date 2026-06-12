@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-research
+  namespace: multi-agent-research
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: multi-agent-research
+
+  template:
+    metadata:
+      labels:
+        app: multi-agent-research
+
+    spec:
+      containers:
+      - name: app
+        image: ahadkhan021/multi-agent-ai-research-system:latest
+
+        ports:
+        - containerPort: 8501
+
+        envFrom:
+        - configMapRef:
+            name: multi-agent-research-config
+        - secretRef:
+            name: multi-agent-research-secrets
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 20
+
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 15
+          periodSeconds: 10
