@@ -2,7 +2,6 @@
 
 pipeline {
 
-```
 agent { label "ahad" }
 
 environment {
@@ -144,6 +143,5 @@ post {
         )
     }
 }
-```
 
 }
