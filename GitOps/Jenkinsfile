@@ -1,0 +1,155 @@
+@Library('Shared') _
+
+pipeline {
+agent any
+
+```
+parameters {
+    string(
+        name: 'DOCKER_TAG',
+        defaultValue: '',
+        description: 'Docker image tag built by CI pipeline'
+    )
+}
+
+stages {
+
+    stage("Workspace Cleanup") {
+        steps {
+            cleanWs()
+        }
+    }
+
+    stage("Validate Parameters") {
+        steps {
+            script {
+                if (!params.DOCKER_TAG?.trim()) {
+                    error("DOCKER_TAG parameter is required")
+                }
+            }
+        }
+    }
+
+    stage("Git: Checkout Code") {
+        steps {
+            script {
+                code_checkout(
+                    "https://github.com/Ahad0p/MULTI-AGENT-AI-RESEARCH-SYSTEM.git",
+                    "main"
+                )
+            }
+        }
+    }
+
+    stage("Verify Docker Tag") {
+        steps {
+            echo "Deploying image tag: ${params.DOCKER_TAG}"
+        }
+    }
+
+    stage("Update Kubernetes Manifest") {
+        steps {
+            dir('k8s') {
+
+                sh """
+                sed -i \
+                's|image: ahadkhan021/multi-agent-ai-research-system:.*|image: ahadkhan021/multi-agent-ai-research-system:${params.DOCKER_TAG}|g' \
+                deployment.yaml
+                """
+
+                sh "cat deployment.yaml"
+            }
+        }
+    }
+
+    stage("Git Commit and Push") {
+
+        steps {
+
+            withCredentials([
+                gitUsernamePassword(
+                    credentialsId: 'Github-cred',
+                    gitToolName: 'Default'
+                )
+            ]) {
+
+                sh '''
+                git status
+
+                git add k8s/deployment.yaml
+
+                git diff --cached --quiet || \
+                git commit -m "Update deployment image tag"
+
+                git push origin main
+                '''
+            }
+        }
+    }
+}
+
+post {
+
+    success {
+
+        emailext(
+            attachLog: true,
+            from: 'ahadkhan.ai306@gmail.com',
+
+            subject:
+            "Multi-Agent Research deployment updated - ${currentBuild.result}",
+
+            body: """
+            <html>
+            <body>
+
+            <h3>Deployment Successful</h3>
+
+            <p><b>Job:</b> ${env.JOB_NAME}</p>
+
+            <p><b>Build:</b> ${env.BUILD_NUMBER}</p>
+
+            <p><b>Docker Tag:</b> ${params.DOCKER_TAG}</p>
+
+            <p><b>URL:</b> ${env.BUILD_URL}</p>
+
+            </body>
+            </html>
+            """,
+
+            to: 'ahadkhan.ai306@gmail.com',
+            mimeType: 'text/html'
+        )
+    }
+
+    failure {
+
+        emailext(
+            attachLog: true,
+            from: 'ahadkhan.ai306@gmail.com',
+
+            subject:
+            "Multi-Agent Research deployment failed - ${currentBuild.result}",
+
+            body: """
+            <html>
+            <body>
+
+            <h3>Deployment Failed</h3>
+
+            <p><b>Job:</b> ${env.JOB_NAME}</p>
+
+            <p><b>Build:</b> ${env.BUILD_NUMBER}</p>
+
+            </body>
+            </html>
+            """,
+
+            to: 'ahadkhan.ai306@gmail.com',
+            mimeType: 'text/html'
+        )
+    }
+}
+```
+
+}
